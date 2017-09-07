@@ -1,0 +1,13 @@
+version: "2.2"
+
+services:
+  test:
+    image: ${COMPOSE_PROJECT_NAME}-python
+    build:
+      context: docker/python
+    init: true
+    volumes:
+      - .:/aiowstunnel
+    working_dir: /aiowstunnel
+    environment:
+      PYTHONPATH: /aiowstunnel
