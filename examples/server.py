@@ -1,16 +1,25 @@
 import asyncio
-import websockets
+import signal
+import logging
+
+from aiowstunnel.server import Server
 
 
-async def hello(websocket, path):
-    name = await websocket.recv()
-    print("< {}".format(name))
+logging.basicConfig(level=logging.DEBUG)
 
-    greeting = "Hello {}!".format(name)
-    await websocket.send(greeting)
-    print("> {}".format(greeting))
 
-start_server = websockets.serve(hello, '127.0.0.1', 4430)
+async def serve(stop):
+    srv1 = Server('127.0.0.1', 4430)
+    srv1.start()
+    await stop
+    srv1.close()
+    await srv1.wait_closed()
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+
+loop = asyncio.get_event_loop()
+
+# install signal handler
+stop = asyncio.Future()
+loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
+
+loop.run_until_complete(serve(stop))
