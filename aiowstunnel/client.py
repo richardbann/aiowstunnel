@@ -1,36 +1,49 @@
+import asyncio
 import logging
-from asyncio import ensure_future, CancelledError, sleep
 
 import websockets
 
+from .connection import Connection
 from . import LISTEN, CONNECT
-from . import packets
 
 
 logger = logging.getLogger(__name__)
 
 
-class TunnelRejectedError(Exception):
-    pass
-
-
 class Client:
-    def __init__(self, host, port, mode, fwd_host, fwd_port, ssl=None):
-        assert mode in (LISTEN, CONNECT)
+    def __init__(
+        self, server_mode,
+        tunnel_host, tunnel_port,
+        listen_host, listen_port,
+        connect_host, connect_port,
+        ssl=None,
+        initial_delay=1, delay_factor=1.2, max_delay=10
+    ):
+        assert server_mode in (LISTEN, CONNECT)
+
+        self.server_mode = server_mode
+        self.tunnel_host, self.tunnel_port = tunnel_host, tunnel_port
+        self.listen_host, self.listen_port = listen_host, listen_port
+        self.ssl = ssl
+
+        self.mode = LISTEN if server_mode == CONNECT else CONNECT
+        if server_mode == LISTEN:
+            self.fwd_host, self.fwd_port = listen_host, listen_port
+            self.conn_host, self.conn_port = connect_host, connect_port
+        else:
+            self.fwd_host, self.fwd_port = connect_host, connect_port
+            self.conn_host, self.conn_port = listen_host, listen_port
         self.url = '{}://{}:{}/{}/{}/{}'.format(
             'wss' if ssl else 'ws',
-            host, port, mode, fwd_host, fwd_port
+            tunnel_host, tunnel_port, server_mode, self.fwd_host, self.fwd_port
         )
-        self.ssl = ssl
-        self.initial_delay = 1
-        self.delay_factor = 1.2
-        self.max_delay = 10
+
+        self.initial_delay = initial_delay
+        self.delay_factor = delay_factor
+        self.max_delay = max_delay
 
         self._task = None
-        self._closed = False
-
-    def start(self):
-        self._task = ensure_future(self.task())
+        self._task_cancelled = False
 
     def intervals(self):
         d = self.initial_delay
@@ -39,60 +52,53 @@ class Client:
             d *= self.delay_factor
             d = min(d, self.max_delay)
 
-    async def handle(self):
-        while True:
-            try:
-                packet = packets.get_packet(await self.ws.recv())
-                logger.debug('packet: {}'.format(packet))
-            except (CancelledError, websockets.ConnectionClosed):
-                break
-            except Exception:
-                logger.exception('unexpected exception in client handle')
-                break
-        await self.ws.close()
+    def start(self):
+        self._task = asyncio.ensure_future(self.task())
+
+    async def safe_close(self, ws):
+        try:
+            await ws.close()
+        except:
+            pass
+
+    async def try_connect(self):
+        # do not raise or raise CancelledError to stop,
+        # raise stg else to retry
+        ws = await websockets.connect(self.url, ssl=self.ssl)
+        logger.info('connected to {}'.format(self.url))
+        conn = Connection(self.mode, self.conn_host, self.conn_port, ws)
+        try:
+            await conn.handle()
+        except:
+            await self.safe_close(ws)
+            raise
+        await self.safe_close(ws)
 
     async def wait_loop(self):
         for waitsec in self.intervals():
             try:
-                ws = await websockets.connect(self.url, ssl=self.ssl)
-                packet = packets.get_packet(await ws.recv())
-                if packet.name == 'OK':
-                    logger.info('tunnel accepted')
-                else:
-                    raise TunnelRejectedError()
-            except CancelledError:
-                raise
-            except (
-                websockets.exceptions.InvalidStatusCode,
-                ConnectionError,
-                websockets.ConnectionClosed
-            ):
-                msg = 'connection to {} failed, waiting {:.2f} seconds'
-                logger.warning(msg.format(self.url, waitsec))
-            except TunnelRejectedError:
-                msg = 'tunnel {} rejected, waiting {:.2f} seconds'
-                logger.warning(msg.format(self.url, waitsec))
-            except Exception:
-                msg = 'connection to {} failed, waiting {:.2f} seconds'
-                logger.exception(msg.format(self.url, waitsec))
+                await self.try_connect()
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                msg = 'connection to {} failed ({}), waiting {:.2f} seconds'
+                logger.error(msg.format(self.url, exc, waitsec))
+                try:
+                    await asyncio.sleep(waitsec)
+                except asyncio.CancelledError:
+                    break
             else:
-                return ws
-
-            await sleep(waitsec)
+                break
 
     async def task(self):
-        while not self._closed:
-            try:
-                self.ws = await self.wait_loop()
-            except CancelledError:
-                return
-            await self.handle()
+        while not self._task_cancelled:
+            await self.wait_loop()
+        logger.info('connection closed')
 
-    def close(self):
-        self._closed = True
+    async def close(self):
         if self._task:
-            self._task.cancel()
-
-    async def wait_closed(self):
-        if self._task:
+            if not self._task_cancelled:
+                self._task_cancelled = True
+                self._task.cancel()
             await self._task
+        logger.info('bye...')

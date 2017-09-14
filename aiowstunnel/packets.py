@@ -75,8 +75,7 @@ class GenericPacket:
 # Define packet types here:
 # (class name, 2-byte integer attribute names, is there stream data?)
 packets = (
-    ('OK', (), False),
-    ('Error', (), False),
+    ('ListenOK', (), False),
     # ('Greeting', ('maps', 'mabc', 'nhb'), False),
     # ('Heartbeat', (), False),
     ('Request', ('id',), False),

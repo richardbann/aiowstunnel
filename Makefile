@@ -15,3 +15,11 @@ coverage:
 			&& python -m coverage report -m \
 			&& python -m coverage html \
 		"
+
+doc:
+	docker-compose -f docker-compose-test.yml run --rm -u $(usr) \
+	-w /aiowstunnel/docs/ test bash -c \
+		" \
+			rm -rf _build && mkdir _build \
+			&& sphinx-build -b html . _build \
+		"

@@ -21,6 +21,7 @@ services:
       context: docker/python
     init: true
     network_mode: "host"
+    stop_signal: SIGINT
     volumes:
       - ./aiowstunnel:/pypackages/aiowstunnel
       - ./examples:/examples
@@ -35,6 +36,7 @@ services:
       context: docker/python
     init: true
     network_mode: "host"
+    stop_signal: SIGINT
     volumes:
       - ./aiowstunnel:/pypackages/aiowstunnel
       - ./examples:/examples

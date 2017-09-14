@@ -7,3 +7,6 @@ ENV PYTHONUNBUFFERED 1
 RUN pip install --no-cache-dir \
   coverage==4.4.1 \
   websockets==3.4
+
+RUN pip install --no-cache-dir sphinx==1.6.3
+RUN pip install --no-cache-dir sphinx_rtd_theme==0.2.5b1

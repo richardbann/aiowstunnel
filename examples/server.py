@@ -5,15 +5,21 @@ import logging
 from aiowstunnel.server import Server
 
 
-logging.basicConfig(level=logging.DEBUG)
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+stream_handler = logging.StreamHandler()
+fmt = logging.Formatter('SRV|%(asctime)s|%(levelname)s|%(name)s|%(message)s|')
+stream_handler.setFormatter(fmt)
+stream_handler.addFilter(logging.Filter('aiowstunnel'))
+root_logger.addHandler(stream_handler)
+logger = logging.getLogger('aiowstunnel.server')
 
 
 async def serve(stop):
-    srv1 = Server('127.0.0.1', 4430)
-    srv1.start()
+    srv = Server('127.0.0.1', 4430)
+    srv.start()
     await stop
-    srv1.close()
-    await srv1.wait_closed()
+    await srv.close()
 
 
 loop = asyncio.get_event_loop()
