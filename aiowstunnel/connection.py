@@ -23,22 +23,25 @@ class Connection:
         self._listener = None
         self.connections = ids.Ids()
 
-    async def send_safe(self, data):
+    async def send_safe(self, packet):
         try:
-            await self.ws.send(data)
+            await self.ws.send(packet.as_bytes)
         except:
             pass
 
     async def handle_fwd_conn(self, r, w, peer_id=None):
         # this coro will not be cancelled, so we need to make sure
         # the FwdConnection.handle method returns
-        fwd_conn = fwd_connection.FwdConnection(r, w, self.ws)
-        fwd_conn.peer_id = peer_id if peer_id is not None else None
+        fwd_conn = fwd_connection.FwdConnection(r, w, self)
         try:
             fwd_conn.id = self.connections.store(fwd_conn)
         except ids.IdException:
             await fwd_conn.close()
-        await fwd_conn.handle()
+        else:
+            if peer_id is not None:
+                fwd_conn.peer_id = peer_id
+                await self.send_safe(packets.Accept(peer_id, fwd_conn.id))
+            await fwd_conn.handle()
         del self.connections[fwd_conn.id]
 
     async def start_connect(self):
@@ -49,8 +52,11 @@ class Connection:
         except:
             raise TunnelListenError('listening not confirmed')
         packet = packets.get_packet(frame)
+        logger.debug('>>> {}'.format(packet))
         if not isinstance(packet, packets.ListenOK):
             raise TunnelListenError('listening not confirmed')
+        else:
+            logger.info('linstening confirmed')
 
     async def start_listen(self):
         try:
@@ -66,7 +72,19 @@ class Connection:
         else:
             msg = 'fwd listening on {}:{}'
             logger.info(msg.format(self.host, self.port))
-            await self.send_safe(packets.ListenOK().as_bytes)
+            await self.send_safe(packets.ListenOK())
+
+    async def get_one_packet(self):
+        try:
+            frame = await self.ws.recv()
+            packet = packets.get_packet(frame)
+            logger.debug('>>> {}'.format(packet))
+            return packet
+        except (asyncio.CancelledError, websockets.ConnectionClosed):
+            pass
+        except:
+            logger.exception('unexpected exception in connection handle')
+        return None
 
     async def handle(self):
         # must not raise CancelledError:
@@ -80,15 +98,9 @@ class Connection:
             return
 
         while True:
-            try:
-                packet = packets.get_packet(await self.ws.recv())
-                logger.debug('packet: {}'.format(packet))
-            except (asyncio.CancelledError, websockets.ConnectionClosed):
+            packet = await self.get_one_packet()
+            if not packet:
                 break
-            except Exception:
-                logger.exception('unexpected exception in connection handle')
-                break
-
             try:
                 getattr(self, 'handle_%s' % packet.name)(packet)
             except AttributeError:
@@ -117,17 +129,13 @@ class Connection:
 
     async def handle_Request_async(self, p):
         # no cancel
-        self.peer_id = p.id
         try:
             r, w = await asyncio.open_connection(self.host, self.port)
         except:
-            await self.send_safe(packets.Reject(p.id).as_bytes)
+            await self.send_safe(packets.Reject(p.id))
             msg = 'connection failed to {}:{}'
             logger.info(msg.format(self.host, self.port))
         else:
-            await self.send_safe(
-                packets.Accept(self.peer_id, self.id).as_bytes
-            )
             msg = 'connection established to {}:{}'
             logger.info(msg.format(self.host, self.port))
             await self.handle_fwd_conn(r, w, peer_id=p.id)
@@ -147,3 +155,19 @@ class Connection:
             pass
         else:
             fwd_conn.reject()
+
+    def handle_Data(self, p):
+        try:
+            fwd_conn = self.connections[p.peer_id]
+        except KeyError:
+            pass
+        else:
+            fwd_conn.data(p.bytes)
+
+    def handle_Closed(self, p):
+        try:
+            fwd_conn = self.connections[p.peer_id]
+        except KeyError:
+            pass
+        else:
+            fwd_conn.closed()

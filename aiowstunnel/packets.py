@@ -55,8 +55,7 @@ class GenericPacket:
             ba[start:start + 2] = self._args[i].to_bytes(2, byteorder='big')
         if self.has_bytes:
             start = 1 + 2 * len(self.integers)
-            ba[start:start + 2] = len(self.bytes).to_bytes(2, byteorder='big')
-            ba[start + 2:] = self.bytes
+            ba[start:] = self.bytes
         return bytes(ba)
 
     @classmethod
@@ -83,7 +82,8 @@ packets = (
     ('Reject', ('peer_id', ), False),
     ('Data', ('peer_id', ), True),
     # ('Continue', ('peer_id', ), False),
-    # ('Closed', ('peer_id', ), False),
+
+    ('Closed', ('peer_id', ), False),
 )
 
 klasses = []
