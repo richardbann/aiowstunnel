@@ -22,6 +22,10 @@ class Connection:
         self.mode, self.host, self.port, self.ws = mode, host, port, ws
         self._listener = None
         self.connections = ids.Ids()
+        self._heartbeat_task = None
+
+    def ws_close(self):
+        asyncio.ensure_future(self.ws.close())
 
     async def send_safe(self, packet):
         try:
@@ -86,9 +90,29 @@ class Connection:
             logger.exception('unexpected exception in connection handle')
         return None
 
+    async def heartbeat(self):
+        # TODO: ignore exceptions
+        try:
+            while True:
+                logger.debug('.......... sending ping')
+                pong = await self.ws.ping()
+                try:
+                    await asyncio.wait_for(pong, 5)
+                    logger.debug('.......... got pong')
+                except asyncio.TimeoutError:
+                    self.ws_close()
+                    break
+                await asyncio.sleep(10)
+        except (websockets.ConnectionClosed, asyncio.CancelledError):
+            pass
+        except:
+            logger.exception('in heartbeat:')
+        logger.debug('.......... heartbeat stopped')
+
     async def handle(self):
         # must not raise CancelledError:
         # server and client awaits and cancels this coro
+        self._heartbeat_task = asyncio.ensure_future(self.heartbeat())
         try:
             if self.mode == CONNECT:
                 await self.start_connect()
@@ -99,7 +123,7 @@ class Connection:
 
         while True:
             packet = await self.get_one_packet()
-            if not packet:
+            if packet is None:
                 break
             try:
                 getattr(self, 'handle_%s' % packet.name)(packet)
@@ -110,6 +134,9 @@ class Connection:
 
     async def cleanup(self):
         try:
+            if self._heartbeat_task:
+                self._heartbeat_task.cancel()
+                await self._heartbeat_task
             if self._listener:
                 self._listener.close()
                 await self._listener.wait_closed()

@@ -55,7 +55,7 @@ class FwdConnection:
                 self.close_nowait()
         except asyncio.TimeoutError:
             logger.error('response timeout')
-            await self.connection.ws.close()
+            self.connection.ws_close()
 
     async def _read_loop(self):
         while True:
@@ -87,7 +87,11 @@ class FwdConnection:
         self.close_nowait()
         if self.peer_id is not None:
             await self.connection.send_safe(packets.Closed(self.peer_id))
-        await self.close_response
+        # await self.close_response
+        try:
+            await asyncio.wait_for(self.close_response, 5)
+        except asyncio.TimeoutError:
+            self.connection.ws_close()
 
         self.done.set_result(True)
 
