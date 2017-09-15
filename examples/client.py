@@ -29,8 +29,20 @@ async def provide_tunnel(stop):
         initial_delay=1
     )
     cli1.start()
+    # cli2 = Client(
+    #     LISTEN,
+    #     '127.0.0.1', 443,  # the tunnel
+    #     '127.0.0.1', 4465,  # we ask the server to listen here
+    #     '127.0.0.1', 4436,  # connections will be forwarded here
+    #     ssl=context,
+    #     initial_delay=1
+    # )
+    # cli2.start()
+
     await stop
+
     await cli1.close()
+    # await cli2.close()
 
 
 loop = asyncio.get_event_loop()

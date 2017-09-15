@@ -165,34 +165,28 @@ class Connection:
             logger.info(msg.format(self.host, self.port))
             await self.handle_fwd_conn(r, w, peer_id=p.id)
 
-    def handle_Accept(self, p):
+    def _handle_Packet(self, p, menthod_name, field_to_pass=None):
         try:
             fwd_conn = self.connections[p.peer_id]
         except KeyError:
             pass
         else:
-            fwd_conn.accept(p.id)
+            if field_to_pass:
+                getattr(fwd_conn, menthod_name)(getattr(p, field_to_pass))
+            else:
+                getattr(fwd_conn, menthod_name)()
+
+    def handle_Accept(self, p):
+        self._handle_Packet(p, 'accept', 'id')
 
     def handle_Reject(self, p):
-        try:
-            fwd_conn = self.connections[p.peer_id]
-        except KeyError:
-            pass
-        else:
-            fwd_conn.reject()
+        self._handle_Packet(p, 'reject')
 
     def handle_Data(self, p):
-        try:
-            fwd_conn = self.connections[p.peer_id]
-        except KeyError:
-            pass
-        else:
-            fwd_conn.data(p.bytes)
+        self._handle_Packet(p, 'data', 'bytes')
 
     def handle_Closed(self, p):
-        try:
-            fwd_conn = self.connections[p.peer_id]
-        except KeyError:
-            pass
-        else:
-            fwd_conn.closed()
+        self._handle_Packet(p, 'closed')
+
+    def handle_Continue(self, p):
+        self._handle_Packet(p, 'got_continue')

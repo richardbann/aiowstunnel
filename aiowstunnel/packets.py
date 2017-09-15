@@ -76,13 +76,11 @@ class GenericPacket:
 packets = (
     ('ListenOK', (), False),
     # ('Greeting', ('maps', 'mabc', 'nhb'), False),
-    # ('Heartbeat', (), False),
     ('Request', ('id',), False),
     ('Accept', ('peer_id', 'id'), False),
     ('Reject', ('peer_id', ), False),
     ('Data', ('peer_id', ), True),
-    # ('Continue', ('peer_id', ), False),
-
+    ('Continue', ('peer_id', ), False),
     ('Closed', ('peer_id', ), False),
 )
 
