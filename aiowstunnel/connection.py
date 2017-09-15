@@ -91,14 +91,12 @@ class Connection:
         return None
 
     async def heartbeat(self):
-        # TODO: ignore exceptions
         try:
             while True:
-                logger.debug('.......... sending ping')
                 pong = await self.ws.ping()
                 try:
                     await asyncio.wait_for(pong, 5)
-                    logger.debug('.......... got pong')
+                    logger.debug('.......... heartbeat')
                 except asyncio.TimeoutError:
                     self.ws_close()
                     break
@@ -106,7 +104,7 @@ class Connection:
         except (websockets.ConnectionClosed, asyncio.CancelledError):
             pass
         except:
-            logger.exception('in heartbeat:')
+            logger.exception('exception in heartbeat')
         logger.debug('.......... heartbeat stopped')
 
     async def handle(self):
