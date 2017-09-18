@@ -16,7 +16,7 @@ logger = logging.getLogger('aiowstunnel.server')
 
 
 async def serve(stop):
-    srv = Server('127.0.0.1', 4430, heartbeat_interval=13)
+    srv = Server('127.0.0.1', 4430, heartbeat_interval=10)
     srv.start()
     await stop
     await srv.close()

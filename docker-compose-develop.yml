@@ -62,3 +62,15 @@ services:
     command: ["python", "appserver.py"]
     environment:
       PYTHONPATH: /pypackages
+
+  pypi:
+    image: ${COMPOSE_PROJECT_NAME}-python-pypi
+    build:
+      context: docker/python
+      dockerfile: Dockerfile-pypi
+    init: true
+    network_mode: "host"
+    stop_signal: SIGINT
+    volumes:
+      - ./examples:/examples
+    working_dir: /examples

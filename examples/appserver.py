@@ -75,13 +75,10 @@ class Server:
 
 
 async def serve(stop):
-    srv1 = Server('127.0.0.1', 4436)
+    srv1 = Server('127.0.0.1', 4432)
     srv1.start()
-    # srv2 = Server('127.0.0.1', 4436)
-    # srv2.start()
     await stop
     await srv1.close()
-    # await srv2.close()
 
 
 loop = asyncio.get_event_loop()
