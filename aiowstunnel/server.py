@@ -9,7 +9,7 @@ from urllib import parse
 
 import websockets
 
-from . import connection
+from .connection import Connection, TunnelListenError
 
 
 logger = logging.getLogger(__name__)
@@ -20,9 +20,10 @@ class Server:
     The Server class represents the tunnel server listening on ``host:port``.
     """
 
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
+    def __init__(self, host, port, response_timeout=5, heartbeat_interval=10):
+        self.host, self.port = host, port
+        self.response_timeout = response_timeout
+        self.heartbeat_interval = heartbeat_interval
         self._task = None
         self._task_cancelled = False
 
@@ -41,9 +42,13 @@ class Server:
         except:
             logger.error('invalid path: {}'.format(path))
         else:
+            conn = Connection(
+                mode, host, port, ws,
+                self.response_timeout, self.heartbeat_interval
+            )
             try:
-                await connection.Connection(mode, host, port, ws).handle()
-            except connection.TunnelListenError as exc:
+                await conn.handle()
+            except TunnelListenError as exc:
                 logger.error(exc)
         finally:
             logger.info('connection closed {}'.format(ws.remote_address))

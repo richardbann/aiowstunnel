@@ -17,7 +17,8 @@ class Client:
         listen_host, listen_port,
         connect_host, connect_port,
         ssl=None,
-        initial_delay=1, delay_factor=1.2, max_delay=10
+        initial_delay=1, delay_factor=1.2, max_delay=10,
+        response_timeout=5, heartbeat_interval=10
     ):
         assert server_mode in (LISTEN, CONNECT)
 
@@ -41,6 +42,8 @@ class Client:
         self.initial_delay = initial_delay
         self.delay_factor = delay_factor
         self.max_delay = max_delay
+        self.response_timeout = response_timeout
+        self.heartbeat_interval = heartbeat_interval
 
         self._task = None
         self._task_cancelled = False
@@ -66,7 +69,11 @@ class Client:
         # raise stg else to retry
         ws = await websockets.connect(self.url, ssl=self.ssl)
         logger.info('connected to {}'.format(self.url))
-        conn = Connection(self.mode, self.conn_host, self.conn_port, ws)
+        conn = Connection(
+            self.mode,
+            self.conn_host, self.conn_port,
+            ws, self.response_timeout, self.heartbeat_interval
+        )
         try:
             await conn.handle()
         except:

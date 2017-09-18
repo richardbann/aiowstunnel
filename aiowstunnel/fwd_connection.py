@@ -10,6 +10,11 @@ class FwdConnection:
     def __init__(self, r, w, connection):
         self.r, self.w, self.connection = r, w, connection
         self.peername = self.w.get_extra_info('peername')
+        self.response_timeout = connection.response_timeout
+        self.accept_before_continue = 64  # TODO: configure -------------------
+        self.send_without_continue = 64  # TODO: configure --------------------
+        self.queue_high_mark = 64  # TODO: configure --------------------------
+        self.queue_low_mark = 32  # TODO: configure ---------------------------
 
         self.id = None
         self.peer_id = None
@@ -19,9 +24,10 @@ class FwdConnection:
         self._closed = False
         self.write_task = None
         self.write_queue = asyncio.Queue()
-        self.sent_cnt = 0  # data packets sent after sending a continue
-        self.recv_cnt = 0  # data packets received after last continue
+        self.sent_cnt = 0  # data packets sent after received continue
+        self.recv_cnt = 0  # data packets received after sent continue
         self.queue_ok = None
+        self._continue = None
 
     def closed(self):
         self.close_nowait()
@@ -38,13 +44,26 @@ class FwdConnection:
             self.response.set_result(False)
 
     def data(self, d):
-        if self.recv_cnt == 10:  # TODO: configure
+        self.recv_cnt += 1
+        if self.recv_cnt > self.accept_before_continue:
+            logger.error('no continue received')
             self.connection.ws_close()
-        else:
-            self.recv_cnt += 1
-            self.write_queue.put_nowait(d)
+            return
+        self.write_queue.put_nowait(d)
+
+        if self.recv_cnt == self.accept_before_continue:
+            asyncio.ensure_future(self._send_continue())
 
     def got_continue(self):
+        if self._continue and not self._continue.done():
+            self._continue.set_result(None)
+
+    async def _send_continue(self):
+        if self.write_queue.qsize() > self.queue_high_mark:
+            self.queue_ok = self.connection.ws.loop.create_future()
+            await self.queue_ok
+            self.queue_ok = None
+        await self.connection.send_safe(packets.Continue(self.peer_id))
         self.recv_cnt = 0
 
     async def _write_loop(self):
@@ -53,7 +72,7 @@ class FwdConnection:
                 data = await self.write_queue.get()
                 self.w.write(data)
                 await self.w.drain()
-                if self.write_queue.qsize() <= 5:  # TODO: configure
+                if self.write_queue.qsize() <= self.queue_low_mark:
                     if self.queue_ok and not self.queue_ok.done():
                         self.queue_ok.set_result(None)
             except:
@@ -63,7 +82,7 @@ class FwdConnection:
         await self.connection.send_safe(packets.Request(self.id))
         try:
             # close will call reject to set result on self.response
-            resp = await asyncio.wait_for(self.response, 5)
+            resp = await asyncio.wait_for(self.response, self.response_timeout)
             if not resp:
                 self.close_nowait()
         except asyncio.TimeoutError:
@@ -72,26 +91,22 @@ class FwdConnection:
 
     async def _read_loop(self):
         while True:
-            if self.sent_cnt == 10:  # TODO: configure
-                # TODO: configure
-                if self.write_queue.qsize() > 10 and not self._closed:
-                    # wait for the write_queue to shrink below limit
-                    self.queue_ok = self.connection.ws.loop.create_future()
-                    await self.queue_ok  # TODO: set result in case of close
-                    self.queue_ok = None
-                pack = packets.Continue(self.peer_id)
-                await self.connection.send_safe(pack)
-                self.sent_cnt = 0
             try:
-                data = await self.r.read(8192)
+                data = await self.r.read(4096)
             except:
                 data = None
             if not data:
                 break
 
             pack = packets.Data(self.peer_id, data)
-            self.sent_cnt += 1
             await self.connection.send_safe(pack)
+
+            self.sent_cnt += 1
+            if self.sent_cnt == self.send_without_continue:
+                self._continue = self.connection.ws.loop.create_future()
+                await self._continue
+                self._continue = None
+                self.sent_cnt = 0
 
     async def handle(self):
         # will not be cancelled
@@ -111,9 +126,8 @@ class FwdConnection:
         self.close_nowait()
         if self.peer_id is not None:
             await self.connection.send_safe(packets.Closed(self.peer_id))
-        # await self.close_response
         try:
-            await asyncio.wait_for(self.close_response, 5)
+            await asyncio.wait_for(self.close_response, self.response_timeout)
         except asyncio.TimeoutError:
             self.connection.ws_close()
 
@@ -123,6 +137,7 @@ class FwdConnection:
         self._closed = True
         self.w.close()
         self.reject()  # will set response future
+        self.got_continue()
         if self.queue_ok and not self.queue_ok.done():
             self.queue_ok.set_result(None)
 

@@ -18,8 +18,12 @@ class TunnelListenError(Exception):
 
 
 class Connection:
-    def __init__(self, mode, host, port, ws):
+    def __init__(
+        self, mode, host, port, ws, response_timeout, heartbeat_interval
+    ):
         self.mode, self.host, self.port, self.ws = mode, host, port, ws
+        self.response_timeout = response_timeout
+        self.heartbeat_interval = heartbeat_interval
         self._listener = None
         self.connections = ids.Ids()
         self._heartbeat_task = None
@@ -49,15 +53,9 @@ class Connection:
         del self.connections[fwd_conn.id]
 
     async def start_connect(self):
-        try:
-            frame = await asyncio.wait_for(self.ws.recv(), 5)
-        except asyncio.CancelledError:
-            raise
-        except:
-            raise TunnelListenError('listening not confirmed')
-        packet = packets.get_packet(frame)
-        logger.debug('>>> {}'.format(packet))
-        if not isinstance(packet, packets.ListenOK):
+        # CancelledError will be thrown
+        pack = await self.get_one_packet(timeout=self.response_timeout)
+        if pack is None or not isinstance(pack, packets.ListenOK):
             raise TunnelListenError('listening not confirmed')
         else:
             logger.info('linstening confirmed')
@@ -78,13 +76,18 @@ class Connection:
             logger.info(msg.format(self.host, self.port))
             await self.send_safe(packets.ListenOK())
 
-    async def get_one_packet(self):
+    async def get_one_packet(self, timeout=None):
         try:
-            frame = await self.ws.recv()
+            frame = await asyncio.wait_for(self.ws.recv(), timeout)
             packet = packets.get_packet(frame)
             logger.debug('>>> {}'.format(packet))
             return packet
-        except (asyncio.CancelledError, websockets.ConnectionClosed):
+        except asyncio.TimeoutError:
+            raise
+        except asyncio.CancelledError:
+            if timeout is not None:
+                raise
+        except websockets.ConnectionClosed:
             pass
         except:
             logger.exception('unexpected exception in connection handle')
@@ -95,12 +98,12 @@ class Connection:
             while True:
                 pong = await self.ws.ping()
                 try:
-                    await asyncio.wait_for(pong, 5)
+                    await asyncio.wait_for(pong, self.response_timeout)
                     logger.debug('.......... heartbeat')
                 except asyncio.TimeoutError:
                     self.ws_close()
                     break
-                await asyncio.sleep(10)
+                await asyncio.sleep(self.heartbeat_interval)
         except (websockets.ConnectionClosed, asyncio.CancelledError):
             pass
         except:

@@ -3,7 +3,7 @@ import ssl
 import logging
 import signal
 
-from aiowstunnel import LISTEN
+from aiowstunnel import CONNECT
 from aiowstunnel.client import Client
 
 
@@ -21,12 +21,12 @@ async def provide_tunnel(stop):
     context = ssl.create_default_context(cafile='/trusted_root.crt')
     context.load_cert_chain('/certificate.crt', keyfile='/certificate.key')
     cli1 = Client(
-        LISTEN,
-        '127.0.0.1', 443,  # the tunnel
+        CONNECT,
+        '127.0.0.1', 443,   # the tunnel
         '127.0.0.1', 4435,  # we ask the server to listen here
         '127.0.0.1', 4436,  # connections will be forwarded here
         ssl=context,
-        initial_delay=1
+        initial_delay=1, heartbeat_interval=10
     )
     cli1.start()
     # cli2 = Client(
