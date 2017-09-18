@@ -20,12 +20,18 @@ class Server:
     The Server class represents the tunnel server listening on ``host:port``.
     """
 
-    def __init__(self, host, port, response_timeout=5, heartbeat_interval=10):
+    def __init__(
+        self, host, port,
+        response_timeout=5, heartbeat_interval=10,
+        loop=None
+    ):
+        self.loop = asyncio.get_event_loop() if loop is None else loop
         self.host, self.port = host, port
         self.response_timeout = response_timeout
         self.heartbeat_interval = heartbeat_interval
         self._task = None
         self._task_cancelled = False
+        self.listening = self.loop.create_future()
 
     def start(self):
         """
@@ -56,7 +62,7 @@ class Server:
     async def task(self):
         try:
             ws_server = await websockets.serve(
-                self.handle, self.host, self.port
+                self.handle, self.host, self.port, loop=self.loop
             )
         except asyncio.CancelledError:
             return
@@ -69,20 +75,24 @@ class Server:
             logger.exception(msg.format(self.host, self.port))
             return
         else:
+            self.listening.set_result(None)
             msg = 'tunnel listening on {}:{}'
             logger.info(msg.format(self.host, self.port))
 
         try:
-            await ws_server.loop.create_future()
+            await self.loop.create_future()
         except asyncio.CancelledError:
             ws_server.close()
             await ws_server.wait_closed()  # this will cancel the handler
 
     async def close(self):
-        if self._task:
-            # do not cancel more than once
-            if not self._task_cancelled:
-                self._task_cancelled = True
-                self._task.cancel()
+        if not self._task:
+            return
+        if not self._task_cancelled:
+            self._task_cancelled = True
+            self._task.cancel()
+        try:
             await self._task
+        except asyncio.CancelledError:
+            pass
         logger.info('bye...')

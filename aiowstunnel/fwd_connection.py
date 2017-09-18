@@ -33,6 +33,8 @@ class FwdConnection:
         self.close_nowait()
         if not self.close_response.done():
             self.close_response.set_result(None)
+        if self.write_task:
+            self.write_task.cancel()
 
     def accept(self, peer_id):
         self.peer_id = peer_id

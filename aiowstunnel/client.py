@@ -103,9 +103,13 @@ class Client:
         logger.info('connection closed')
 
     async def close(self):
-        if self._task:
-            if not self._task_cancelled:
-                self._task_cancelled = True
-                self._task.cancel()
+        if not self._task:
+            return
+        if not self._task_cancelled:
+            self._task_cancelled = True
+            self._task.cancel()
+        try:
             await self._task
+        except asyncio.CancelledError:
+            pass
         logger.info('bye...')
