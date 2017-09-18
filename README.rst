@@ -1,7 +1,7 @@
 aiowstunnel
 ===========
 
-Persistent and reliable TCP tunneling based on :mod:`asyncio`.
+Persistent and reliable TCP tunneling based on ``asyncio``.
 
 Concepts
 --------
@@ -22,12 +22,15 @@ The arrow ``a`` ---> ``b`` indicates that ``a`` can connect to ``b``, but
 ``b`` can not connect to ``a``.
 
 In this case you start a tunnel server on ``host2`` that listens on port 9000.
-::
+
+.. code-block:: python
 
   Server('0.0.0.0', 9000)
 
 You also strart a tunnel client
-on ``host1`` in ``CONNECT`` mode with the following parameters::
+on ``host1`` in ``CONNECT`` mode with the following parameters
+
+.. code-block:: python
 
   Client(
       aiowstunnel.CONNECT,  # you need connect mode here
@@ -73,11 +76,11 @@ In this case the tunnel server will be started on ``host1``, the
 client on ``host2``. The server needs to **listen** ``0.0.0.0:5678`` while
 the client **connects** to the application server.
 
-::
+.. code-block:: python
 
   Server('0.0.0.0', 9000)
 
-::
+.. code-block:: python
 
   Client(
       aiowstunnel.LISTEN,   # you need the server to listen
@@ -89,7 +92,9 @@ the client **connects** to the application server.
 Strarting the Server and the Client
 -----------------------------------
 
-Here is the code to properly start the server in the above example::
+Here is the code to properly start the server in the above example
+
+.. code-block:: python
 
   import asyncio
   import signal
@@ -116,7 +121,9 @@ Here is the code to properly start the server in the above example::
 
   loop.run_until_complete(serve(stop))
 
-Starting the client is very similar::
+Starting the client is very similar
+
+.. code-block:: python
 
   import asyncio
   import logging
