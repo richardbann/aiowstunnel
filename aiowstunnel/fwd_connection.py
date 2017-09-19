@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import datetime
 
 from . import packets
 
@@ -30,6 +31,7 @@ class FwdConnection:
         self._continue = None
         self.from_socket = 0
         self.to_socket = 0
+        self.create_time = datetime.datetime.utcnow()
 
     def closed(self):
         self.close_nowait()

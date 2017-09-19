@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import datetime
 
 import websockets
 
@@ -29,6 +30,7 @@ class Connection:
         self._heartbeat_task = None
         self.id = None
         self.done = ws.loop.create_future()
+        self.create_time = datetime.datetime.utcnow()
 
     def ws_close(self):
         asyncio.ensure_future(self.ws.close())

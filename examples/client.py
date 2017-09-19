@@ -1,7 +1,7 @@
 import asyncio
 # import ssl
 import logging
-import signal
+# import signal
 
 from aiowstunnel import LISTEN, CONNECT
 from aiowstunnel.client import Client
@@ -48,6 +48,9 @@ loop = asyncio.get_event_loop()
 
 # install signal handler
 stop = asyncio.Future()
-loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
+# loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
 
-loop.run_until_complete(provide_tunnel(stop))
+try:
+    loop.run_until_complete(provide_tunnel(stop))
+except KeyboardInterrupt:
+    stop.set_result(None)
