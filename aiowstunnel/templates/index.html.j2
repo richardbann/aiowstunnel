@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Tunnel Healthcheck</title>
+  <script
+    src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <h1>listening on {{ server.host }}: {{ server.port }}</h1>
+  {% for connid, conn in server.connections.items() %}
+    <h2>
+      {{ conn.mode }} {{ conn.host }}:{{ conn.port }}
+      <button data-url="/close/{{ conn.id }}">
+        close
+      </button>
+    </h2>
+    {% for id, fwdconn in conn.connections.items() %}
+      <div>{{ id }}: {{ fwdconn.peername.0 }}:{{ fwdconn.peername.1 }}
+          read from socket: {{ fwdconn.from_socket }}
+          written to socket: {{ fwdconn.to_socket }}
+      </div>
+    {% endfor %}
+  {% endfor %}
+  <script>
+    $(document).ready(function(){
+      $('button').on('click', function() {
+        $.get($(this).attr('data-url'))
+          .done(function() {location.reload()})
+      });
+    });
+  </script>
+</body>
+</html>

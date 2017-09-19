@@ -75,7 +75,7 @@ class Server:
 
 
 async def serve(stop):
-    srv1 = Server('127.0.0.1', 4432)
+    srv1 = Server('127.0.0.1', 6000)
     srv1.start()
     await stop
     await srv1.close()

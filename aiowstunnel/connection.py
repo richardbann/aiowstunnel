@@ -27,9 +27,14 @@ class Connection:
         self._listener = None
         self.connections = ids.Ids()
         self._heartbeat_task = None
+        self.id = None
+        self.done = ws.loop.create_future()
 
     def ws_close(self):
         asyncio.ensure_future(self.ws.close())
+
+    async def wait_closed(self):
+        await self.done
 
     async def send_safe(self, packet):
         try:
@@ -120,7 +125,11 @@ class Connection:
             elif self.mode == LISTEN:
                 await self.start_listen()
         except asyncio.CancelledError:
+            self.done.set_result(None)
             return
+        except:
+            self.done.set_result(None)
+            raise
 
         while True:
             packet = await self.get_one_packet()
@@ -132,6 +141,7 @@ class Connection:
                 logger.error('packet handler not found: {}'.format(packet))
 
         await self.cleanup()
+        self.done.set_result(None)
 
     async def cleanup(self):
         try:

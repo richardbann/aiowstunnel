@@ -28,6 +28,8 @@ class FwdConnection:
         self.recv_cnt = 0  # data packets received after sent continue
         self.queue_ok = None
         self._continue = None
+        self.from_socket = 0
+        self.to_socket = 0
 
     def closed(self):
         self.close_nowait()
@@ -74,6 +76,7 @@ class FwdConnection:
                 data = await self.write_queue.get()
                 self.w.write(data)
                 await self.w.drain()
+                self.to_socket += len(data)
                 if self.write_queue.qsize() <= self.queue_low_mark:
                     if self.queue_ok and not self.queue_ok.done():
                         self.queue_ok.set_result(None)
@@ -95,6 +98,7 @@ class FwdConnection:
         while True:
             try:
                 data = await self.r.read(4096)
+                self.from_socket += len(data)
             except:
                 data = None
             if not data:

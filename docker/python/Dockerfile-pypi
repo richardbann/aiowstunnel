@@ -5,5 +5,4 @@ RUN apk --no-cache add bash
 ENV PYTHONUNBUFFERED 1
 
 RUN pip install --no-cache-dir \
-  websockets==3.4 \
   aiowstunnel==0.1.0
