@@ -12,7 +12,7 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.ws = new WebSocket('ws://localhost:4430/stats');
+    this.ws = new WebSocket('wss://localhost/stats');
     this.ws.onopen = () => this.setState({ws: this.ws});
     this.ws.onerror = e => this.setState({ws: null, data: null});
     this.ws.onclose = e => this.setState({ws: null, data: null});
@@ -31,6 +31,7 @@ class App extends Component {
           <td>{conn.port}</td>
           <td>{conn.createTime}</td>
           <td colSpan={5} style={{textAlign: 'right'}}>
+            {/* TODO */}
             <button data-url="/close/{{ conn.id }}">close</button>
           </td>
         </tr>

@@ -1,9 +1,9 @@
 import asyncio
-# import ssl
+import ssl
 import logging
 # import signal
 
-from aiowstunnel import LISTEN, CONNECT
+from aiowstunnel import LISTEN  # , CONNECT
 from aiowstunnel.client import Client
 
 
@@ -18,30 +18,35 @@ logger = logging.getLogger('aiowstunnel.client')
 
 
 async def provide_tunnel(stop):
-    # context = ssl.create_default_context(cafile='/trusted_root.crt')
-    # context.load_cert_chain('/certificate.crt', keyfile='/certificate.key')
+    context = ssl.create_default_context(
+        cafile='/examples/certificates/rootca.crt'
+    )
+    context.load_cert_chain(
+        '/examples/certificates/client.crt',
+        keyfile='/examples/certificates/client.key'
+    )
     cli1 = Client(
         LISTEN,
-        '127.0.0.1', 4430,  # the tunnel
+        '127.0.0.1', 443,  # the tunnel
         '127.0.0.1', 4431,  # we ask the server to listen here
         '127.0.0.1', 6000,  # connections will be forwarded here
-        # ssl=context,
+        ssl=context,
         initial_delay=1, heartbeat_interval=10
     )
     cli1.start()
-    cli2 = Client(
-        CONNECT,
-        '127.0.0.1', 4430,  # the tunnel
-        '127.0.0.1', 4432,  # we listen
-        '127.0.0.1', 6000,  # connections will be forwarded here
-        # ssl=context,
-        initial_delay=1, heartbeat_interval=10
-    )
-    cli2.start()
+    # cli2 = Client(
+    #     CONNECT,
+    #     '127.0.0.1', 4430,  # the tunnel
+    #     '127.0.0.1', 4432,  # we listen
+    #     '127.0.0.1', 6000,  # connections will be forwarded here
+    #     # ssl=context,
+    #     initial_delay=1, heartbeat_interval=10
+    # )
+    # cli2.start()
 
     await stop
     await cli1.close()
-    await cli2.close()
+    # await cli2.close()
 
 
 loop = asyncio.get_event_loop()

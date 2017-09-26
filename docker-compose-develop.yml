@@ -40,9 +40,9 @@ services:
     volumes:
       - ./aiowstunnel:/pypackages/aiowstunnel
       - ./examples:/examples
-      - ./docker/example-certificates/client/certificate.crt:/certificate.crt
-      - ./docker/example-certificates/client/certificate.key:/certificate.key
-      - ./docker/example-certificates/server/rootca.crt:/trusted_root.crt
+      # - ./docker/example-certificates/client/certificate.crt:/certificate.crt
+      # - ./docker/example-certificates/client/certificate.key:/certificate.key
+      # - ./docker/example-certificates/server/rootca.crt:/trusted_root.crt
     working_dir: /examples
     command: ["python", "client.py"]
     environment:
