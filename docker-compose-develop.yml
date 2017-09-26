@@ -9,9 +9,9 @@ services:
     network_mode: "host"
     volumes:
       - ./docker/nginx/nginx.conf:/nginx.conf
-      - ./docker/example-certificates/server/certificate.crt:/certificate.crt
-      - ./docker/example-certificates/server/certificate.key:/certificate.key
-      - ./docker/example-certificates/client/rootca.crt:/trusted_root.crt
+      - ./docker/nginx/nginx_mime.types:/nginx_mime.types
+      - ./examples/certificates:/certificates
+      - ./aiowstunnel/healthcheck_frontend/build:/www-root
     working_dir: /examples
     command: ["nginx", "-c", "/nginx.conf"]
 
@@ -74,3 +74,14 @@ services:
     volumes:
       - ./examples:/examples
     working_dir: /examples
+
+  react:
+    image: ${COMPOSE_PROJECT_NAME}-react
+    build:
+      context: docker/react
+    init: true
+    network_mode: "host"
+    volumes:
+      - ./aiowstunnel/healthcheck_frontend:/frontend
+    user: 1000:1000
+    working_dir: /frontend

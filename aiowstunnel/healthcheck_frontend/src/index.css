@@ -1,0 +1,20 @@
+body {
+  padding: 10px;
+  font-family: sans-serif;
+}
+td {
+  padding: 5px;
+}
+.server {
+  font-size: 140%;
+  margin-bottom: 20px;
+}
+.conn td {
+  background-color: #eee;
+  border-top: 1px solid black;
+  border-bottom: 1px solid black;
+}
+table {
+  border-bottom: 1px solid black;
+  border-collapse: collapse;
+}

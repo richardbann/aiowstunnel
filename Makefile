@@ -1,6 +1,6 @@
 export PYTHONASYNCIODEBUG=1
 export PYTHONWARNINGS=default
-
+SHELL=/bin/bash
 usr := $(shell id -u):$(shell id -g)
 
 test:
@@ -23,3 +23,9 @@ doc:
 			rm -rf _build && mkdir _build \
 			&& sphinx-build -b html . _build \
 		"
+
+build:
+	docker-compose -f docker-compose-develop.yml run --rm react npm run build
+
+gencerts:
+	cd examples/certificates && ./create.sh
