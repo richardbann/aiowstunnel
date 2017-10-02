@@ -11,8 +11,7 @@ services:
       - ./docker/nginx/nginx.conf:/nginx.conf
       - ./docker/nginx/nginx_mime.types:/nginx_mime.types
       - ./examples/certificates:/certificates
-      - ./aiowstunnel/healthcheck_frontend/build:/www-root
-    working_dir: /examples
+      # - ./aiowstunnel/healthcheck_frontend/build:/www-root
     command: ["nginx", "-c", "/nginx.conf"]
 
   server:

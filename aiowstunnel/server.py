@@ -7,6 +7,7 @@ import logging
 import asyncio
 from urllib import parse
 import json
+import os
 from http import HTTPStatus
 
 import websockets
@@ -16,13 +17,6 @@ from . import ids
 
 
 logger = logging.getLogger(__name__)
-
-
-# class Protocol(websockets.WebSocketServerProtocol):
-#     async def process_request(self, path, request_headers):
-#         if path == '/stats/json':
-#             logger.debug('.......... {}'.format(path))
-#             return HTTPStatus.OK, [], b'OK'
 
 
 class Server:
@@ -105,14 +99,45 @@ class Server:
             logger.info('connection closed {}'.format(addr))
             del self.connections[conn_id]
 
+    def get_content_type(self, fn):
+        bn = os.path.basename(fn)
+        split = bn.split('.')
+        return {
+            'html': 'text/html',
+            'css': 'text/css',
+            'js': 'application/javascript'
+        }.get(split[-1], 'application/octet-stream')
+
     async def task(self):
         class Protocol(websockets.WebSocketServerProtocol):
             async def process_request(inner_self, path, request_headers):
                 try:
+                    if path in ('', '/'):
+                        path = 'index.html'
                     if path == '/stats/json':
                         stats = json.dumps(self.stats)
-                        body = bytes(stats, 'utf-8')
-                        return HTTPStatus.OK, [], body
+                        return (
+                            HTTPStatus.OK,
+                            [('Content-Type', 'application/json')],
+                            bytes(stats, 'utf-8')
+                        )
+                    ws_paths = ('stats', 'listen', 'connect')
+                    if path.strip('/').split('/')[0] not in ws_paths:
+                        rel = '../resources'
+                        fn = os.path.join(__file__, rel, path.strip('/'))
+                        fn = os.path.abspath(fn)
+                        if os.path.isfile(fn):
+                            with open(fn, 'rb') as f:
+                                b = f.read()
+                            return (
+                                HTTPStatus.OK,
+                                [('Content-Type', self.get_content_type(fn))],
+                                b
+                            )
+                        else:
+                            pass
+                            # return (HTTPStatus.NOT_FOUND, [], b'')
+
                 except:
                     logger.exception('exc:')
 

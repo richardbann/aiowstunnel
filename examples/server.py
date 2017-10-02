@@ -10,7 +10,6 @@ root_logger.setLevel(logging.DEBUG)
 stream_handler = logging.StreamHandler()
 fmt = logging.Formatter('SRV|%(asctime)s|%(levelname)s|%(name)s|%(message)s|')
 stream_handler.setFormatter(fmt)
-stream_handler.addFilter(logging.Filter('aiowstunnel'))
 root_logger.addHandler(stream_handler)
 logger = logging.getLogger('aiowstunnel.server')
 

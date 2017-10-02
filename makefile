@@ -27,6 +27,9 @@ doc:
 		"
 
 build:
+	-rm -rf aiowstunnel/resources
+	mkdir -p aiowstunnel/resources
+	cp -r aiowstunnel/healthcheck_frontend/build/* aiowstunnel/resources/
 	docker-compose -f docker-compose-develop.yml run --rm react npm run build
 
 gencerts:
@@ -36,9 +39,6 @@ example: build
 	docker-compose -f docker-compose-example.yml up
 
 distrbute: build
-	-rm -rf aiowstunnel/resources
-	mkdir -p aiowstunnel/resources
-	cp -r aiowstunnel/healthcheck_frontend/build/* aiowstunnel/resources/
 	rm dist/*
 	python setup.py sdist
 	twine upload dist/*
