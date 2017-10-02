@@ -3,4 +3,5 @@ htmlcov
 .coverage
 docs/_build
 dist
+aiowstunnel/resources
 *.egg-info

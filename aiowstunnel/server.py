@@ -7,6 +7,7 @@ import logging
 import asyncio
 from urllib import parse
 import json
+from http import HTTPStatus
 
 import websockets
 
@@ -15,6 +16,13 @@ from . import ids
 
 
 logger = logging.getLogger(__name__)
+
+
+# class Protocol(websockets.WebSocketServerProtocol):
+#     async def process_request(self, path, request_headers):
+#         if path == '/stats/json':
+#             logger.debug('.......... {}'.format(path))
+#             return HTTPStatus.OK, [], b'OK'
 
 
 class Server:
@@ -98,6 +106,16 @@ class Server:
             del self.connections[conn_id]
 
     async def task(self):
+        class Protocol(websockets.WebSocketServerProtocol):
+            async def process_request(inner_self, path, request_headers):
+                try:
+                    if path == '/stats/json':
+                        stats = json.dumps(self.stats)
+                        body = bytes(stats, 'utf-8')
+                        return HTTPStatus.OK, [], body
+                except:
+                    logger.exception('exc:')
+
         ws_server = None
         try:
             try:
@@ -105,7 +123,8 @@ class Server:
                     self.handle,
                     self.host,
                     self.port,
-                    loop=self.loop
+                    loop=self.loop,
+                    create_protocol=Protocol
                 )
             except asyncio.CancelledError:
                 raise

@@ -1,0 +1,61 @@
+version: "2.2"
+
+services:
+  nginx:
+    image: ${COMPOSE_PROJECT_NAME}-nginx
+    build:
+      context: docker/nginx
+    init: true
+    network_mode: "host"
+    volumes:
+      - ./docker/nginx/nginx.conf:/nginx.conf
+      - ./docker/nginx/nginx_mime.types:/nginx_mime.types
+      - ./examples/certificates:/certificates
+      - ./aiowstunnel/healthcheck_frontend/build:/www-root
+    working_dir: /examples
+    command: ["nginx", "-c", "/nginx.conf"]
+
+  server:
+    image: ${COMPOSE_PROJECT_NAME}-python
+    build:
+      context: docker/python
+    init: true
+    network_mode: "host"
+    stop_signal: SIGINT
+    volumes:
+      - ./aiowstunnel:/pypackages/aiowstunnel
+      - ./examples:/examples
+    working_dir: /examples
+    command: ["python", "server.py"]
+    environment:
+      PYTHONPATH: /pypackages
+
+  client:
+    image: ${COMPOSE_PROJECT_NAME}-python
+    build:
+      context: docker/python
+    init: true
+    network_mode: "host"
+    stop_signal: SIGINT
+    volumes:
+      - ./aiowstunnel:/pypackages/aiowstunnel
+      - ./examples:/examples
+    working_dir: /examples
+    command: ["python", "client.py"]
+    environment:
+      PYTHONPATH: /pypackages
+
+  appserver:
+    image: ${COMPOSE_PROJECT_NAME}-python
+    build:
+      context: docker/python
+    init: true
+    network_mode: "host"
+    stop_signal: SIGINT
+    volumes:
+      - ./aiowstunnel:/pypackages/aiowstunnel
+      - ./examples:/examples
+    working_dir: /examples
+    command: ["python", "appserver.py"]
+    environment:
+      PYTHONPATH: /pypackages

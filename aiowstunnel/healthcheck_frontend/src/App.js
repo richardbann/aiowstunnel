@@ -18,12 +18,9 @@ class App extends Component {
   }
 
   startReconnect() {
-    this.nextConnAt =
-      new Date().getTime() + 1000 * this.props.delays[this.nextConnIdx];
+    this.nextConnAt = new Date().getTime() + 1000 * this.props.delays[this.nextConnIdx];
     this.nextConnIdx =
-      this.nextConnIdx === this.props.delays.length - 1
-        ? this.nextConnIdx
-        : this.nextConnIdx + 1;
+      this.nextConnIdx === this.props.delays.length - 1 ? this.nextConnIdx : this.nextConnIdx + 1;
     this.timer = setTimeout(() => this.checkReconnect(), 100);
   }
 
@@ -110,15 +107,13 @@ class App extends Component {
       case 'FAILEDRECONNECT':
         return (
           <div className="server">
-            connection failed, reconnecting in {this.state.nextConnSec}{' '}
-            seconds...
+            connection failed, reconnecting in {this.state.nextConnSec} seconds...
           </div>
         );
       case 'CLOSEDRECONNECT':
         return (
           <div className="server">
-            connection closed, reconnecting in {this.state.nextConnSec}{' '}
-            seconds...
+            connection closed, reconnecting in {this.state.nextConnSec} seconds...
           </div>
         );
       case 'CONNECTED':
@@ -128,27 +123,22 @@ class App extends Component {
           return (
             <div>
               <div className="server">
-                tunnel server listening on {this.state.data.host}:{' '}
-                {this.state.data.port}
+                tunnel server listening on {this.state.data.host}: {this.state.data.port}
               </div>
               <table cellSpacing="0">
-                <tbody>
-                  {this.connectionRows(this.state.data.connections)}
-                </tbody>
+                <tbody>{this.connectionRows(this.state.data.connections)}</tbody>
               </table>
             </div>
           );
       default:
-        return (
-          <div className="server">invalid state: {this.state.wsState}</div>
-        );
+        return <div className="server">invalid state: {this.state.wsState}</div>;
     }
   }
 }
 
 App.defaultProps = {
   wsURI: 'wss://localhost/stats',
-  delays: [5, 5, 5, 10]
+  delays: [1, 2, 2, 5, 5, 5, 10]
 };
 
 export default App;

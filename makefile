@@ -3,6 +3,8 @@ export PYTHONWARNINGS=default
 SHELL=/bin/bash
 usr := $(shell id -u):$(shell id -g)
 
+.PHONY: test coverage doc build gencerts example
+
 test:
 	docker-compose -f docker-compose-test.yml run --rm test python -m unittest
 
@@ -29,3 +31,14 @@ build:
 
 gencerts:
 	cd examples/certificates && ./create.sh
+
+example: build
+	docker-compose -f docker-compose-example.yml up
+
+distrbute: build
+	-rm -rf aiowstunnel/resources
+	mkdir -p aiowstunnel/resources
+	cp -r aiowstunnel/healthcheck_frontend/build/* aiowstunnel/resources/
+	rm dist/*
+	python setup.py sdist
+	twine upload dist/*
