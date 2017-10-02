@@ -135,8 +135,7 @@ class Server:
                                 b
                             )
                         else:
-                            pass
-                            # return (HTTPStatus.NOT_FOUND, [], b'')
+                            return (HTTPStatus.NOT_FOUND, [], b'')
 
                 except:
                     logger.exception('exc:')

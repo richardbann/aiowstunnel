@@ -11,7 +11,7 @@ setup(
     name='aiowstunnel',
     description='Persistent and reliable TCP tunneling on websockets '
                 'based on asyncio',
-    version='0.4.0',
+    version='0.4.1',
     url='https://github.com/richardbann/aiowstunnel',
     author='Richard Bann',
     author_email='richardbann@gmail.com',
@@ -23,7 +23,7 @@ setup(
     install_requires=[
         'websockets >= 3.4'
     ],
-    package_data={'aiowstunnel': ['resources/static/*', 'resources/*.*']},
+    package_data={'aiowstunnel': ['resources/static/*/*', 'resources/*.*']},
     license='MIT',
     packages=['aiowstunnel'],
 )

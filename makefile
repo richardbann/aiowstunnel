@@ -27,10 +27,10 @@ doc:
 		"
 
 build:
+	docker-compose -f docker-compose-develop.yml run --rm react npm run build
 	-rm -rf aiowstunnel/resources
 	mkdir -p aiowstunnel/resources
 	cp -r aiowstunnel/healthcheck_frontend/build/* aiowstunnel/resources/
-	docker-compose -f docker-compose-develop.yml run --rm react npm run build
 
 gencerts:
 	cd examples/certificates && ./create.sh
