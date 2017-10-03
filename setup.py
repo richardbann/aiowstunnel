@@ -11,7 +11,7 @@ setup(
     name='aiowstunnel',
     description='Persistent and reliable TCP tunneling on websockets '
                 'based on asyncio',
-    version='0.4.1',
+    version='0.4.2',
     url='https://github.com/richardbann/aiowstunnel',
     author='Richard Bann',
     author_email='richardbann@gmail.com',
