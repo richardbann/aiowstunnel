@@ -91,6 +91,7 @@ class FwdConnection:
             # close will call reject to set result on self.response
             resp = await asyncio.wait_for(self.response, self.response_timeout)
             if not resp:
+                logger.info('request rejected, closing fwd conn')
                 self.close_nowait()
         except asyncio.TimeoutError:
             logger.error('response timeout')
@@ -133,10 +134,12 @@ class FwdConnection:
         # closing
         self.close_nowait()
         if self.peer_id is not None:
+            logger.debug('sending closed packet to {}'.format(self.peer_id))
             await self.connection.send_safe(packets.Closed(self.peer_id))
         try:
             await asyncio.wait_for(self.close_response, self.response_timeout)
         except asyncio.TimeoutError:
+            logger.error('timeout in waiting for close')
             self.connection.ws_close()
 
         self.done.set_result(None)

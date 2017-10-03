@@ -87,7 +87,7 @@ class Connection:
         try:
             frame = await asyncio.wait_for(self.ws.recv(), timeout)
             packet = packets.get_packet(frame)
-            logger.debug('>>> {}'.format(packet))
+            logger.debug('packet in: {}'.format(packet))
             return packet
         except asyncio.TimeoutError:
             raise
@@ -173,8 +173,9 @@ class Connection:
             r, w = await asyncio.open_connection(self.host, self.port)
         except:
             await self.send_safe(packets.Reject(p.id))
-            msg = 'connection failed to {}:{}'
+            msg = 'connection failed to {}:{}, sending close'
             logger.info(msg.format(self.host, self.port))
+            await self.send_safe(packets.Closed(p.id))
         else:
             msg = 'connection established to {}:{}'
             logger.info(msg.format(self.host, self.port))
